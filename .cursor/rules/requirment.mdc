@@ -1,0 +1,290 @@
+# Project Rules & Requirements   Sistem Informasi Ujian ICT & TOEFL (LP3M UNIKS)
+
+> Sumber: hasil kajian proposal skripsi "Perancangan Sistem Informasi Ujian ICT dan TOEFL Berbasis Web pada LP3M Universitas Islam Kuantan Singingi".
+> File ini ditujukan untuk dipakai sebagai context/rules oleh AI Coding Agent (Cursor) saat membangun aplikasi.
+
+---
+
+## 1. Ringkasan Kajian Requirement (dari naskah asli)
+
+**Masalah yang harus diselesaikan sistem:**
+- Pendaftaran ujian ICT & TOEFL masih manual (datang ke kantor, tulis di buku).
+- Informasi jadwal & kelulusan hanya tersebar lewat grup WhatsApp → tidak terjangkau yang belum join grup.
+- Data peserta tidak terintegrasi.
+- Pembuatan laporan ujian lambat dan tidak efektif.
+
+**Tujuan sistem:**
+1. Merancang & membangun sistem informasi ujian ICT & TOEFL berbasis web.
+2. Mempermudah pendaftaran (online), meningkatkan efisiensi & akurasi data.
+3. Mengurangi human error pencatatan manual.
+4. Menyediakan informasi ujian secara cepat, tepat, efisien.
+
+**Ruang lingkup (batasan eksplisit dari naskah):**
+- Hanya mencakup: pendaftaran peserta ujian, pengelolaan data peserta, penyajian informasi ujian (jadwal, hasil/kelulusan).
+- Pengguna sistem **dibatasi hanya 2 role**: Admin LP3M dan Peserta Ujian.
+- Berbasis web, diakses via internet.
+
+**Alat desain yang dirujuk di BAB II** (artinya dokumentasi teknis sebaiknya konsisten dengan ini): Use Case Diagram, Activity Diagram, Sequence Diagram, Class Diagram (UML).
+
+**Stack tersirat dari tinjauan pustaka:** PHP (server-side), MySQL (database), HTML/CSS/JS di sisi tampilan.
+
+---
+
+## 2. Functional Requirements (diturunkan dari scope di atas)
+
+### Role: Admin LP3M
+- FR-01: Login sebagai admin.
+- FR-02: Kelola data master ujian (jenis ujian: ICT / TOEFL, periode, jadwal, kuota, biaya bila ada).
+- FR-03: Kelola/verifikasi data peserta yang mendaftar.
+- FR-04: Input/upload hasil & status kelulusan peserta per sesi ujian.
+- FR-05: Publikasikan pengumuman (jadwal, kelulusan, info lain) agar tampil di portal peserta   **menggantikan fungsi grup WhatsApp**.
+- FR-06: Generate laporan (rekap peserta, rekap kelulusan, rekap per periode)   ekspor PDF/Excel.
+- FR-07: Kelola akun peserta (reset, nonaktifkan jika perlu).
+
+### Role: Peserta Ujian
+- FR-08: Registrasi akun & login.
+- FR-09: Mendaftar ujian (ICT dan/atau TOEFL) secara online tanpa datang ke kantor.
+- FR-10: Upload dokumen pendukung pendaftaran (jika disyaratkan, misal KTM/bukti bayar).
+- FR-11: Melihat status pendaftaran.
+- FR-12: Melihat jadwal ujian yang diikuti.
+- FR-13: Melihat hasil/kelulusan ujian pribadi.
+- FR-14: Melihat pengumuman umum dari LP3M.
+
+### Cross-cutting
+- FR-15: Notifikasi (in-app minimal; email/WA opsional sebagai pengembangan, **bukan pengganti sistem inti** seperti kondisi awal yang justru jadi masalah).
+- FR-16: Audit/log aktivitas penting (siapa input nilai, kapan).
+
+---
+
+## 3. Non-Functional Requirements
+- NFR-01: Web-based, responsive (bisa diakses dari HP mahasiswa).
+- NFR-02: Data peserta & nilai harus konsisten/terintegrasi dalam satu database (poin masalah utama di naskah).
+- NFR-03: Hak akses dipisah tegas Admin vs Peserta (role-based access control)   sesuai batasan "pengguna dibatasi pada admin dan peserta".
+- NFR-04: Waktu hasil ujian/pengumuman tersedia real-time setelah admin publish (tidak menunggu broadcast manual).
+- NFR-05: Keamanan dasar: password hashing, validasi input, proteksi SQL injection (relevan karena stack PHP+MySQL).
+
+---
+
+## 4. Rules untuk Cursor AI Agent
+
+```
+# .cursorrules   Sistem Informasi Ujian ICT & TOEFL LP3M UNIKS
+
+## Konteks Proyek
+Aplikasi web untuk LP3M Universitas Islam Kuantan Singingi guna mengelola
+pendaftaran, jadwal, dan hasil ujian ICT & TOEFL secara online, menggantikan
+proses manual (datang langsung + info via grup WhatsApp).
+
+## Role Pengguna (HANYA 2   jangan tambah role lain tanpa konfirmasi user)
+1. admin_lp3m    kelola ujian, peserta, hasil, pengumuman, laporan
+2. peserta       daftar ujian, lihat status/jadwal/hasil, lihat pengumuman
+
+## Batasan Scope (WAJIB DIPATUHI)
+- Jangan menambah modul di luar: pendaftaran peserta, pengelolaan data peserta,
+  penyajian informasi ujian (jadwal & hasil), pelaporan.
+- Jangan membangun fitur pembayaran/payment gateway kecuali user memintanya
+  secara eksplisit (tidak disebut di naskah asli).
+- Jangan membuat role tambahan (misal "superadmin", "dosen", dst) kecuali
+  diminta   naskah eksplisit membatasi pengguna hanya admin & peserta.
+
+## Tech Stack (default, ikuti kecuali user override)
+- Backend: PHP (native atau framework ringan seperti Laravel   tanyakan
+  preferensi user sebelum memilih)
+- Database: MySQL
+- Frontend: HTML, CSS, JavaScript (boleh dengan Bootstrap untuk responsive)
+- Desain proses didokumentasikan dengan UML: use case, activity, sequence,
+  class diagram   sertakan deskripsi tekstual diagram ini saat membuat modul baru
+
+## Konvensi Kode
+- Gunakan prepared statement / parameter binding untuk semua query (cegah SQL injection)
+- Hash password dengan bcrypt/Argon2, jangan plaintext atau MD5
+- Middleware/guard pemisah akses admin vs peserta di setiap route/controller
+- Struktur tabel minimal: users (role: admin/peserta), peserta_profil,
+  jenis_ujian (ICT/TOEFL), sesi_ujian, pendaftaran, hasil_ujian, pengumuman
+
+## Prioritas saat Implementasi
+1. Autentikasi & role-based access control
+2. Modul pendaftaran ujian (peserta) + verifikasi (admin)
+3. Modul jadwal & pengumuman
+4. Modul input/publish hasil & kelulusan
+5. Modul laporan (rekap, export)
+
+## Hal yang TIDAK boleh diasumsikan sendiri oleh agent
+- Skema biaya/pembayaran ujian
+- Integrasi dengan sistem akademik/SIA kampus lain
+- Notifikasi WhatsApp/email otomatis (boleh diusulkan, tapi konfirmasi dulu ke user)
+```
+
+---
+
+## 5b. Catatan Penting: Penyesuaian Tech Stack dari User (Override Eksplisit)
+
+Naskah proposal menyebut tools implementasi **"HTML, PHP, MySQL dan Xampp"** secara eksplisit   itu [FAKTA] dari sisi akademik/tinjauan pustaka skripsi. **Tapi Pak Ego sudah memutuskan implementasi aktual TIDAK memakai stack itu**, melainkan:
+- **Next.js** (bukan PHP)
+- **JavaScript murni   bukan TypeScript** (penegasan eksplisit dari user, jangan agent diam-diam pakai `.ts`/`.tsx`)
+- **SQLite / DB lokal** (bukan MySQL/server DB)
+
+Ini adalah **[KEPUTUSAN USER]**   kategori baru, levelnya di atas [FAKTA] proposal karena proposal cuma teori akademik, sedangkan ini instruksi langsung pemilik project. Cursor agent harus ikut [KEPUTUSAN USER] untuk hal teknis, dan boleh tetap mengacu ke [FAKTA]/[INFER] proposal untuk hal **fungsional** (role, scope, jenis ujian, dst   itu tidak berubah).
+
+---
+
+## 5c. Tech Stack Final (gunakan ini, bukan bagian 5C versi lama)
+
+| Layer | Pilihan | Status |
+|---|---|---|
+| Framework | Next.js | [KEPUTUSAN USER] |
+| Bahasa | JavaScript (.js/.jsx)   **JANGAN TypeScript** | [KEPUTUSAN USER] |
+| Database | SQLite (file lokal) | [KEPUTUSAN USER] |
+| ORM/DB access | belum ditentukan user   [ASUMSI] saya akan pakai `better-sqlite3` atau `Prisma` (schema provider sqlite) sebagai default kerja; **tanyakan ke user mana yang dipilih** sebelum setup project |
+| Styling | belum disebut user   [ASUMSI], default Tailwind CSS kecuali user override |
+| Auth | belum disebut user   [ASUMSI], default session/cookie based (bukan NextAuth dulu, supaya simpel & cocok SQLite lokal)   **tanyakan ke user** |
+
+**Implikasi pada arsitektur:**
+- App Router Next.js (`app/`) dengan Route Handlers (`app/api/.../route.js`) untuk backend, bukan PHP endpoint.
+- Semua file harus `.js`/`.jsx`   kalau Cursor/agent generate `.ts`/`.tsx`, itu salah dan harus ditolak/diperbaiki.
+- SQLite cocok untuk single-server/lokal   **tidak cocok untuk concurrent write tinggi**; karena scope sistem ini kecil (1 instansi, 2 role) ini wajar dan tidak masalah, tapi tandai sebagai catatan kalau nanti mau scale ke multi-server.
+
+---
+
+## 5. Klasifikasi Sumber Informasi (PENTING   dasar anti-halusinasi)
+
+Saya sudah baca ulang **seluruh isi dokumen (BAB I–IV + Daftar Pustaka, 481 baris)**, bukan cuma BAB I-II. Tidak ada ERD, skema tabel, daftar field, atau use case diagram konkret di dalam naskah   BAB II hanya menjelaskan *legenda simbol UML* secara umum (definisi teori), bukan diagram sistem ini. BAB III hanya berisi metodologi (model SDLC) dan teknik pengumpulan data, BAB IV hanya jadwal kerja penelitian.
+
+Artinya: **setiap detail teknis (nama tabel, nama field, endpoint, status enum, dst.) di luar yang disebutkan eksplisit dalam naskah adalah HASIL TURUNAN/ASUMSI saya, bukan fakta dari dokumen.** Supaya Cursor agent tidak halusinasi, saya pisahkan tegas tiga lapis berikut. Lapis B & C wajib dikonfirmasi ke Pak Ego sebelum agent mulai coding.
+
+### A. FAKTA EKSPLISIT dari dokumen (boleh dipakai agent sebagai ground truth, tidak boleh diubah)
+| Hal | Fakta tertulis di naskah |
+|---|---|
+| Judul sistem | "Perancangan Sistem Informasi Ujian ICT dan TOEFL Berbasis Web pada LP3M Universitas Islam Kuantan Singingi" |
+| Lokasi/instansi | LP3M (Lembaga Pengembangan Pembelajaran dan Penjaminan Mutu), Universitas Islam Kuantan Singingi |
+| Jenis ujian | Hanya 2: ICT (*Information and Communication Technology*) dan TOEFL (*Test of English as a Foreign Language*) |
+| Pengguna sistem | "Pengguna sistem dibatasi pada admin LP3M dan peserta ujian"   hanya 2 role, tertulis sebagai batasan eksplisit |
+| Scope fungsional | "proses pendaftaran peserta ujian, pengelolaan data peserta, dan penyajian informasi terkait ujian ICT dan TOEFL" |
+| Platform | "Sistem informasi dikembangkan berbasis web dan dapat diakses melalui jaringan internet" |
+| Metodologi pengembangan | Model SDLC dengan 4 tahap yang dipakai: (1) Requirements Definition/Analisis Kebutuhan, (2) System and Software Design, (3) Implementation and Unit Testing, (4) Integration and System Testing. Penelitian berhenti di tahap 4   tahap Operation and Maintenance secara eksplisit TIDAK dilakukan. |
+| Tools desain | Use Case Diagram, Class Diagram, Activity Diagram (disebut dipakai untuk pemodelan, tanpa isi diagram konkret) |
+| Tools implementasi | "HTML, PHP, MySQL dan Xampp"   disebut tertulis persis seperti ini |
+| Metode pengujian | BlackBox Testing |
+| Teknik pengumpulan data riset | Observasi, Wawancara, Studi Pustaka |
+| Masalah yang mendasari | Pendaftaran manual (tulis di buku), info jadwal/kelulusan hanya lewat grup WhatsApp, data tidak terintegrasi, laporan tidak efektif |
+
+### B. INFERENSI WAJAR (turunan logis dari A)
+- Karena masalah utamanya "info hanya via WhatsApp", fitur pengumuman/jadwal/hasil yang tampil di sistem adalah konsekuensi langsung dari rumusan masalah (bukan kutipan literal, tapi inferensi kuat).
+- Modul laporan disebut di "manfaat penelitian" (mengurangi waktu membuat laporan) tapi tidak disebut eksplisit di "ruang lingkup"   status inferensi sedang.
+
+### C. ASUMSI / DRAFT TEKNIS   WAJIB DIKONFIRMASI sebelum dikerjakan agent
+Tidak ada di naskah sama sekali. Ini draft awal supaya agent punya titik mulai, tapi harus dianggap placeholder:
+- Struktur tabel database, nama kolom, tipe data
+- Endpoint API / routing (sekarang: Route Handler Next.js, bukan endpoint PHP)
+- Status enum (mis. "pending/verified/rejected")
+- Alur upload dokumen, validasi format file
+- Biaya/pembayaran ujian (tidak disebut sama sekali di naskah)
+- Notifikasi email/WhatsApp otomatis (tidak disebut   justru WhatsApp manual yang ingin DIGANTIKAN)
+- Library DB access untuk SQLite (better-sqlite3 vs Prisma)   lihat bagian 5c
+- Strategi auth (session/cookie vs library auth)   lihat bagian 5c
+
+---
+
+## 6. Skema Database   DRAFT (status: ASUMSI, perlu konfirmasi)
+
+| Tabel | Field utama (draft) | Catatan |
+|---|---|---|
+| `users` | id, nama, email, password_hash, role(ENUM: 'admin','peserta'), created_at | role HANYA 2 nilai sesuai Fakta A |
+| `peserta_profil` | id, user_id (FK), nomor_identitas, prodi, no_hp | field identitas   ASUMSI, tanya field apa yang dipakai LP3M |
+| `jenis_ujian` | id, nama_ujian (ENUM: 'ICT','TOEFL') | sesuai Fakta A, tidak boleh ditambah jenis lain |
+| `sesi_ujian` | id, jenis_ujian_id (FK), tanggal, kuota, lokasi/link | ASUMSI struktur |
+| `pendaftaran` | id, peserta_id (FK), sesi_ujian_id (FK), status (ENUM: 'menunggu_verifikasi','terverifikasi','ditolak'), created_at | status enum = ASUMSI |
+| `hasil_ujian` | id, pendaftaran_id (FK), nilai/skor, status_kelulusan (ENUM: 'lulus','tidak_lulus'), tanggal_publish | ASUMSI |
+| `pengumuman` | id, judul, isi, dibuat_oleh (FK admin), tanggal_publish | pengganti fungsi grup WhatsApp |
+
+**Larangan untuk agent:** jangan membuat tabel/kolom lain di luar daftar ini (mis. tabel pembayaran, role tambahan) tanpa instruksi eksplisit user, walau "terasa logis untuk ditambahkan".
+
+---
+
+## 7. State Machine   DRAFT (status: ASUMSI)
+
+```
+Pendaftaran:
+  menunggu_verifikasi -> terverifikasi   (aksi: admin verifikasi)
+  menunggu_verifikasi -> ditolak         (aksi: admin tolak, wajib isi alasan)
+
+Hasil Ujian:
+  (belum ada hasil) -> lulus / tidak_lulus   (aksi: admin publish hasil)
+  setelah publish -> tampil otomatis di akun peserta terkait (real-time, tanpa broadcast manual)
+```
+Jika LP3M punya status lain (misal "menunggu_pembayaran"), tambahkan setelah konfirmasi   jangan diasumsikan ada oleh agent.
+
+---
+
+## 8. Update Rules untuk Cursor Agent (versi anti-halusinasi)
+
+```
+# .cursorrules   Sistem Informasi Ujian ICT & TOEFL LP3M UNIKS (v2, ketat)
+
+## Disiplin Sumber (WAJIB)
+Setiap requirement punya 3 status:
+  [FAKTA]  = tertulis eksplisit di proposal sumber, tidak boleh diubah
+  [INFER]  = turunan logis, boleh dipakai tapi beri komentar // INFER:
+  [ASUMSI] = belum dikonfirmasi user, WAJIB beri komentar // ASUMSI: perlu konfirmasi
+
+Jika butuh detail yang tidak ada di [FAKTA]/[INFER], JANGAN MENGARANG.
+Tandai `// ASUMSI:` dengan jelas, atau berhenti dan tanyakan ke user.
+
+## Role Pengguna   HANYA 2 (FAKTA, hard constraint)
+1. admin     kelola sesi ujian, verifikasi pendaftaran, publish hasil & pengumuman, laporan
+2. peserta   daftar ujian, lihat status/jadwal/hasil/pengumuman
+Jangan tambah role lain tanpa instruksi eksplisit baru dari user.
+
+## Jenis Ujian   HANYA 2 (FAKTA, hard constraint)
+ICT dan TOEFL. Jangan tambah jenis ujian lain kecuali diminta.
+
+## Scope Modul (FAKTA, hard constraint)
+HANYA: pendaftaran peserta, pengelolaan data peserta, penyajian info ujian
+(jadwal/pengumuman/hasil), laporan (INFER). Dilarang menambah modul pembayaran
+online, integrasi SIA kampus, notifikasi WA/email otomatis tanpa instruksi
+eksplisit user.
+
+## Tech Stack (KEPUTUSAN USER   wajib diikuti, override dari proposal akademik)
+- Framework: Next.js, App Router
+- Bahasa: JavaScript murni (.js/.jsx)   DILARANG menulis/generate file .ts/.tsx
+  atau menambahkan TypeScript config (tsconfig.json, dst). Jika starter/template
+  default Next.js membawa TypeScript, agent wajib men-setup project sebagai
+  JavaScript-only dari awal (`npx create-next-app` tanpa flag --typescript,
+  atau hapus konfigurasi TS jika ada).
+- Database: SQLite (file lokal, mis. `data/app.db`), BUKAN MySQL.
+- Library akses DB & strategi auth belum difinalkan user   ini [ASUMSI],
+  tampilkan pilihan ke user (mis. better-sqlite3 vs Prisma+sqlite) sebelum
+  install dependency, jangan langsung pilih sendiri secara final.
+- Proposal akademik menyebut PHP/MySQL/Xampp   itu HANYA referensi teori
+  skripsi (BAB II/III), BUKAN stack implementasi aktual. Jangan bingung atau
+  mencampur referensi itu ke dalam kode.
+
+## Metode Pengujian (FAKTA)
+BlackBox Testing   uji input/output, bukan struktur internal kode. Setiap
+modul baru disertai rencana test case blackbox (input -> expected output).
+
+## Skema Database & Status Enum
+Lihat bagian 6 & 7 file kajian ini. Semua berlabel [ASUMSI]. Sebelum membuat
+migration/DDL final, agent harus menampilkan skema yang dipakai dan menunggu
+konfirmasi user, kecuali user sudah bilang "lanjutkan dengan draft yang ada".
+
+## Larangan Eksplisit
+- Jangan membuat fitur pembayaran ujian.
+- Jangan membuat role tambahan.
+- Jangan mengganti batasan "web-based" jadi mobile-app native.
+- Jangan mengasumsikan integrasi WA/email otomatis sudah disetujui.
+- Jangan mengubah istilah baku naskah: pakai persis "ICT", "TOEFL", "LP3M",
+  "peserta", "admin"   jangan ganti jadi sinonim lain di kode/DB (mis.
+  jangan ganti "peserta" jadi "siswa"/"mahasiswa" di nama tabel).
+
+## Saat Ragu
+Urutan prioritas: (1) cek [FAKTA] -> pakai; (2) cek [INFER] -> pakai dengan
+komentar; (3) tidak ada di keduanya -> STOP, tandai `// ASUMSI:` dan/atau
+tanyakan ke user. Jangan pernah mengisi kekosongan requirement dengan
+menebak "yang biasanya dipakai di sistem sejenis" tanpa menandainya.
+```
+
+---
+
+## 9. Catatan
+Dokumen ini sudah mencakup seluruh isi proposal (BAB I–IV, 481 baris, termasuk daftar pustaka). Tidak ada ERD/use case diagram konkret atau daftar field di naskah aslinya   bagian skema database & state machine di atas adalah draft kerja, bukan ekstraksi dokumen. Kalau Pak Ego punya dokumen ERD/desain sistem terpisah atau hasil wawancara dengan LP3M soal field yang dibutuhkan, kirim ke saya   itu akan dipindahkan dari kategori [ASUMSI] ke [FAKTA] di rules ini.

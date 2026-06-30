@@ -33,6 +33,13 @@ yarn-error.log*
 # env files (can opt-in for committing if needed)
 .env*
 
+# sqlite database
+/data/
+
+# uploaded gallery images
+/public/uploads/galeri/*
+!/public/uploads/galeri/.gitkeep
+
 # vercel
 .vercel
 
