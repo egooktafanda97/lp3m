@@ -20,6 +20,12 @@ export default function JadwalUjianPage() {
   const columns = [
     { title: "Jenis Ujian", dataIndex: "nama_ujian", key: "nama_ujian" },
     { title: "Tanggal", dataIndex: "tanggal", key: "tanggal" },
+    {
+      title: "Durasi",
+      dataIndex: "durasi_menit",
+      key: "durasi_menit",
+      render: (value) => `${value} menit`,
+    },
     { title: "Lokasi", dataIndex: "lokasi", key: "lokasi" },
     {
       title: "Status",

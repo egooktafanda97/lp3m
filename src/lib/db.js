@@ -17,7 +17,7 @@ function runMigrations(database) {
       nama TEXT NOT NULL,
       email TEXT NOT NULL UNIQUE,
       password_hash TEXT NOT NULL,
-      role TEXT NOT NULL CHECK(role IN ('admin', 'peserta')),
+      role TEXT NOT NULL CHECK(role IN ('admin', 'kepala_lp3m', 'peserta')),
       is_active INTEGER NOT NULL DEFAULT 1,
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
@@ -39,6 +39,7 @@ function runMigrations(database) {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       jenis_ujian_id INTEGER NOT NULL REFERENCES jenis_ujian(id),
       tanggal TEXT NOT NULL,
+      durasi_menit INTEGER NOT NULL DEFAULT 120,
       kuota INTEGER NOT NULL DEFAULT 0,
       lokasi TEXT
     );
@@ -51,6 +52,8 @@ function runMigrations(database) {
         CHECK(status IN ('menunggu_verifikasi', 'terverifikasi', 'ditolak')),
       alasan_penolakan TEXT,
       dokumen_path TEXT,
+      dokumen_nama_asli TEXT,
+      dokumen_mime TEXT,
       created_at TEXT NOT NULL DEFAULT (datetime('now')),
       UNIQUE(peserta_id, sesi_ujian_id)
     );
@@ -94,6 +97,74 @@ function runMigrations(database) {
 }
 
 function migrateColumns(database) {
+  const usersSql = database
+    .prepare("SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'users'")
+    .get()?.sql;
+  if (usersSql && !usersSql.includes("kepala_lp3m")) {
+    database.pragma("foreign_keys = OFF");
+    try {
+      database.transaction(() => {
+        database.exec(`
+          CREATE TABLE users_baru (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            nama TEXT NOT NULL,
+            email TEXT NOT NULL UNIQUE,
+            password_hash TEXT NOT NULL,
+            role TEXT NOT NULL CHECK(role IN ('admin', 'kepala_lp3m', 'peserta')),
+            is_active INTEGER NOT NULL DEFAULT 1,
+            created_at TEXT NOT NULL DEFAULT (datetime('now'))
+          );
+          INSERT INTO users_baru (id, nama, email, password_hash, role, is_active, created_at)
+            SELECT id, nama, email, password_hash, role, is_active, created_at FROM users;
+          DROP TABLE users;
+          ALTER TABLE users_baru RENAME TO users;
+        `);
+      })();
+    } finally {
+      database.pragma("foreign_keys = ON");
+    }
+  }
+
+  const pendaftaranCols = database.pragma("table_info(pendaftaran)");
+  if (!pendaftaranCols.find((c) => c.name === "dokumen_nama_asli")) {
+    database.exec("ALTER TABLE pendaftaran ADD COLUMN dokumen_nama_asli TEXT");
+  }
+  if (!pendaftaranCols.find((c) => c.name === "dokumen_mime")) {
+    database.exec("ALTER TABLE pendaftaran ADD COLUMN dokumen_mime TEXT");
+  }
+
+  const sesiCols = database.pragma("table_info(sesi_ujian)");
+  if (!sesiCols.find((c) => c.name === "durasi_menit")) {
+    database.exec(
+      "ALTER TABLE sesi_ujian ADD COLUMN durasi_menit INTEGER NOT NULL DEFAULT 120"
+    );
+  }
+
+  database.exec(`
+    CREATE TRIGGER IF NOT EXISTS sesi_ujian_cegah_bentrok_insert
+    BEFORE INSERT ON sesi_ujian
+    WHEN EXISTS (
+      SELECT 1 FROM sesi_ujian s
+      WHERE datetime(s.tanggal) < datetime(NEW.tanggal, '+' || NEW.durasi_menit || ' minutes')
+        AND datetime(s.tanggal, '+' || s.durasi_menit || ' minutes') > datetime(NEW.tanggal)
+    )
+    BEGIN
+      SELECT RAISE(ABORT, 'Jadwal sesi bentrok dengan sesi lain');
+    END;
+
+    CREATE TRIGGER IF NOT EXISTS sesi_ujian_cegah_bentrok_update
+    BEFORE UPDATE OF tanggal, durasi_menit ON sesi_ujian
+    WHEN EXISTS (
+      SELECT 1 FROM sesi_ujian s
+      WHERE s.id != NEW.id
+        AND datetime(s.tanggal) < datetime(NEW.tanggal, '+' || NEW.durasi_menit || ' minutes')
+        AND datetime(s.tanggal, '+' || s.durasi_menit || ' minutes') > datetime(NEW.tanggal)
+    )
+    BEGIN
+      SELECT RAISE(ABORT, 'Jadwal sesi bentrok dengan sesi lain');
+    END;
+  `);
+
   const pengumumanCols = database.pragma("table_info(pengumuman)");
   if (!pengumumanCols.find((c) => c.name === "kategori")) {
     database.exec(
@@ -114,6 +185,19 @@ function seedData(database) {
         "INSERT INTO users (nama, email, password_hash, role) VALUES (?, ?, ?, ?)"
       )
       .run("Admin LP3M", "admin@lp3m.uniks.ac.id", hash, ROLES.ADMIN);
+  }
+
+  const kepalaExists = database
+    .prepare("SELECT id FROM users WHERE role = ? LIMIT 1")
+    .get(ROLES.KEPALA_LP3M);
+
+  if (!kepalaExists) {
+    const hash = bcrypt.hashSync("kepala123", 10);
+    database
+      .prepare(
+        "INSERT INTO users (nama, email, password_hash, role) VALUES (?, ?, ?, ?)"
+      )
+      .run("Kepala LP3M", "kepala@lp3m.uniks.ac.id", hash, ROLES.KEPALA_LP3M);
   }
 
   for (const jenis of JENIS_UJIAN) {

@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Card, Table, Tag } from "antd";
+import { Button, Card, Table, Tag } from "antd";
+import { HiOutlineEye } from "react-icons/hi";
 
 const statusColor = {
   menunggu_verifikasi: "orange",
@@ -30,6 +31,21 @@ export default function StatusPendaftaranPage() {
       render: (s) => (
         <Tag color={statusColor[s]}>{s.replace(/_/g, " ")}</Tag>
       ),
+    },
+    {
+      title: "Bukti Pembayaran",
+      key: "bukti_pembayaran",
+      render: (_, record) => record.dokumen_path ? (
+        <Button
+          size="small"
+          icon={<HiOutlineEye />}
+          href={`/api/bukti-pembayaran/${record.id}`}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Lihat
+        </Button>
+      ) : "-",
     },
     {
       title: "Keterangan",

@@ -5,8 +5,9 @@ import { ROLES } from "@/lib/constants";
 import * as XLSX from "xlsx";
 
 const REPORT_TYPES = ["peserta", "kelulusan", "sesi"];
+const JENIS_UJIAN = ["ICT", "TOEFL"];
 
-function fetchPeserta() {
+function fetchPeserta(ujian) {
   return getDb()
     .prepare(
       `SELECT u.nama, u.email, pp.nomor_identitas, pp.prodi, pp.no_hp,
@@ -16,12 +17,13 @@ function fetchPeserta() {
        LEFT JOIN peserta_profil pp ON pp.user_id = u.id
        JOIN sesi_ujian s ON s.id = p.sesi_ujian_id
        JOIN jenis_ujian j ON j.id = s.jenis_ujian_id
+       WHERE j.nama_ujian = ?
        ORDER BY p.created_at DESC`
     )
-    .all();
+    .all(ujian);
 }
 
-function fetchKelulusan() {
+function fetchKelulusan(ujian) {
   return getDb()
     .prepare(
       `SELECT u.nama, u.email, pp.nomor_identitas, pp.prodi,
@@ -32,15 +34,16 @@ function fetchKelulusan() {
        LEFT JOIN peserta_profil pp ON pp.user_id = u.id
        JOIN sesi_ujian s ON s.id = p.sesi_ujian_id
        JOIN jenis_ujian j ON j.id = s.jenis_ujian_id
+       WHERE j.nama_ujian = ?
        ORDER BY h.tanggal_publish DESC`
     )
-    .all();
+    .all(ujian);
 }
 
-function fetchSesi() {
+function fetchSesi(ujian) {
   return getDb()
     .prepare(
-      `SELECT j.nama_ujian, s.tanggal, s.lokasi, s.kuota,
+      `SELECT j.nama_ujian, s.tanggal, s.durasi_menit, s.lokasi, s.kuota,
         COUNT(p.id) as jumlah_pendaftar,
         SUM(CASE WHEN p.status = 'terverifikasi' THEN 1 ELSE 0 END) as terverifikasi,
         SUM(CASE WHEN p.status = 'menunggu_verifikasi' THEN 1 ELSE 0 END) as menunggu,
@@ -48,36 +51,39 @@ function fetchSesi() {
        FROM sesi_ujian s
        JOIN jenis_ujian j ON j.id = s.jenis_ujian_id
        LEFT JOIN pendaftaran p ON p.sesi_ujian_id = s.id
+       WHERE j.nama_ujian = ?
        GROUP BY s.id
        ORDER BY s.tanggal DESC`
     )
-    .all();
+    .all(ujian);
 }
 
-function getReportData(jenis) {
-  if (jenis === "kelulusan") return fetchKelulusan();
-  if (jenis === "sesi") return fetchSesi();
-  return fetchPeserta();
+function getReportData(jenis, ujian) {
+  if (jenis === "kelulusan") return fetchKelulusan(ujian);
+  if (jenis === "sesi") return fetchSesi(ujian);
+  return fetchPeserta(ujian);
 }
 
-function getFilename(jenis) {
-  if (jenis === "kelulusan") return "rekap_kelulusan.xlsx";
-  if (jenis === "sesi") return "rekap_sesi_ujian.xlsx";
-  return "rekap_peserta.xlsx";
+function getFilename(jenis, ujian) {
+  const suffix = ujian.toLowerCase();
+  if (jenis === "kelulusan") return `rekap_kelulusan_${suffix}.xlsx`;
+  if (jenis === "sesi") return `rekap_sesi_${suffix}.xlsx`;
+  return `rekap_peserta_${suffix}.xlsx`;
 }
 
-function getSheetName(jenis) {
-  if (jenis === "kelulusan") return "Kelulusan";
-  if (jenis === "sesi") return "Sesi Ujian";
-  return "Peserta";
+function getSheetName(jenis, ujian) {
+  if (jenis === "kelulusan") return `Kelulusan ${ujian}`;
+  if (jenis === "sesi") return `Sesi ${ujian}`;
+  return `Peserta ${ujian}`;
 }
 
 export async function GET(request) {
-  const { error, status } = await requireAuth([ROLES.ADMIN]);
+  const { error, status } = await requireAuth([ROLES.ADMIN, ROLES.KEPALA_LP3M]);
   if (error) return errorResponse(error, status);
 
   const { searchParams } = new URL(request.url);
   const jenis = searchParams.get("jenis") || "peserta";
+  const ujian = (searchParams.get("ujian") || "ICT").toUpperCase();
   const format = searchParams.get("format") || "json";
   const page = Math.max(1, Number(searchParams.get("page") || 1));
   // print/all boleh ambil banyak baris; list web dibatasi 100
@@ -90,20 +96,23 @@ export async function GET(request) {
   if (!REPORT_TYPES.includes(jenis)) {
     return errorResponse("Jenis laporan tidak valid");
   }
+  if (!JENIS_UJIAN.includes(ujian)) {
+    return errorResponse("Jenis ujian harus ICT atau TOEFL");
+  }
 
-  const data = getReportData(jenis);
+  const data = getReportData(jenis, ujian);
 
   if (format === "excel") {
     const worksheet = XLSX.utils.json_to_sheet(data);
     const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, getSheetName(jenis));
+    XLSX.utils.book_append_sheet(workbook, worksheet, getSheetName(jenis, ujian));
     const buffer = XLSX.write(workbook, { type: "buffer", bookType: "xlsx" });
 
     return new Response(buffer, {
       headers: {
         "Content-Type":
           "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        "Content-Disposition": `attachment; filename="${getFilename(jenis)}"`,
+        "Content-Disposition": `attachment; filename="${getFilename(jenis, ujian)}"`,
       },
     });
   }
@@ -125,12 +134,13 @@ export async function GET(request) {
     },
     meta: {
       jenis,
+      ujian,
       judul:
         jenis === "kelulusan"
-          ? "Rekap Hasil Kelulusan Ujian"
+          ? `Rekap Hasil Kelulusan Ujian ${ujian}`
           : jenis === "sesi"
-            ? "Rekap Sesi Ujian"
-            : "Rekap Pendaftaran Peserta Ujian",
+            ? `Rekap Sesi Ujian ${ujian}`
+            : `Rekap Pendaftaran Peserta Ujian ${ujian}`,
       generated_at: new Date().toISOString(),
     },
   });

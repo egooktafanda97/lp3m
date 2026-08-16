@@ -35,10 +35,23 @@ const pesertaNav = [
   { href: "/user/pengumuman", label: "Pengumuman", icon: HiOutlineSpeakerphone },
 ];
 
+const kepalaNav = [
+  { href: "/kepala", label: "Dashboard", icon: HiOutlineHome },
+  { href: "/kepala/laporan", label: "Laporan", icon: HiOutlineChartBar },
+];
+
 export default function Sidebar({ open, onClose, role }) {
   const pathname = usePathname();
-  const navItems = role === "admin" ? adminNav : pesertaNav;
-  const homeHref = role === "admin" ? "/admin" : "/user";
+  const navItems = role === "admin"
+    ? adminNav
+    : role === "kepala_lp3m"
+      ? kepalaNav
+      : pesertaNav;
+  const homeHref = role === "admin"
+    ? "/admin"
+    : role === "kepala_lp3m"
+      ? "/kepala"
+      : "/user";
 
   return (
     <>
@@ -99,7 +112,10 @@ export default function Sidebar({ open, onClose, role }) {
 
         <div className="border-t border-slate-700/60 p-4">
           <p className="text-xs text-slate-400">
-            Role: <span className="font-medium text-slate-200">{role}</span>
+            Role:{" "}
+            <span className="font-medium text-slate-200">
+              {role === "kepala_lp3m" ? "Kepala LP3M" : role}
+            </span>
           </p>
         </div>
       </aside>

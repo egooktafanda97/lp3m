@@ -32,6 +32,7 @@ export default function SesiUjianPage() {
   function openCreate() {
     setEditing(null);
     form.resetFields();
+    form.setFieldsValue({ durasi_menit: 120 });
     setModalOpen(true);
   }
 
@@ -40,6 +41,7 @@ export default function SesiUjianPage() {
     form.setFieldsValue({
       jenis_ujian_id: record.jenis_ujian_id,
       tanggal: record.tanggal?.replace(" ", "T").slice(0, 16),
+      durasi_menit: record.durasi_menit || 120,
       kuota: record.kuota,
       lokasi: record.lokasi,
     });
@@ -86,6 +88,12 @@ export default function SesiUjianPage() {
   const columns = [
     { title: "Jenis Ujian", dataIndex: "nama_ujian", key: "nama_ujian" },
     { title: "Tanggal", dataIndex: "tanggal", key: "tanggal" },
+    {
+      title: "Durasi",
+      dataIndex: "durasi_menit",
+      key: "durasi_menit",
+      render: (value) => `${value} menit`,
+    },
     { title: "Lokasi", dataIndex: "lokasi", key: "lokasi" },
     { title: "Kuota", dataIndex: "kuota", key: "kuota" },
     { title: "Pendaftar", dataIndex: "jumlah_pendaftar", key: "jumlah_pendaftar" },
@@ -130,6 +138,13 @@ export default function SesiUjianPage() {
           </Form.Item>
           <Form.Item label="Tanggal & Waktu" name="tanggal" rules={[{ required: true }]}>
             <Input type="datetime-local" />
+          </Form.Item>
+          <Form.Item
+            label="Durasi Sesi (menit)"
+            name="durasi_menit"
+            rules={[{ required: true, message: "Durasi sesi wajib diisi" }]}
+          >
+            <InputNumber min={15} max={480} step={15} className="w-full" />
           </Form.Item>
           <Form.Item label="Kuota" name="kuota" rules={[{ required: true }]}>
             <InputNumber min={1} className="w-full" />

@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Button } from "antd";
 import { HiOutlineMenu, HiOutlineX } from "react-icons/hi";
+import { ROLE_HOME, ROLES } from "@/lib/constants";
 
 const navLinks = [
   { href: "/", label: "Beranda" },
@@ -18,6 +19,12 @@ export default function PublicNavbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [user, setUser] = useState(null);
   const [scrolled, setScrolled] = useState(false);
+  const dashboardHref = user ? ROLE_HOME[user.role] || "/" : "/";
+  const dashboardLabel = user?.role === ROLES.ADMIN
+    ? "Admin"
+    : user?.role === ROLES.KEPALA_LP3M
+      ? "Kepala LP3M"
+      : "Saya";
 
   useEffect(() => {
     fetch("/api/auth/me")
@@ -69,9 +76,9 @@ export default function PublicNavbar() {
 
         <div className="hidden items-center gap-2 md:flex">
           {user ? (
-            <Link href={user.role === "admin" ? "/admin" : "/user"}>
+            <Link href={dashboardHref}>
               <Button type="primary" className="!rounded-lg !shadow-md !shadow-violet-200">
-                Halaman {user.role === "admin" ? "Admin" : "Saya"}
+                Halaman {dashboardLabel}
               </Button>
             </Link>
           ) : (
@@ -115,9 +122,9 @@ export default function PublicNavbar() {
             ))}
             <div className="mt-3 flex flex-col gap-2 border-t border-slate-100 pt-3">
               {user ? (
-                <Link href={user.role === "admin" ? "/admin" : "/user"} onClick={() => setMobileOpen(false)}>
+                <Link href={dashboardHref} onClick={() => setMobileOpen(false)}>
                   <Button type="primary" block>
-                    Halaman {user.role === "admin" ? "Admin" : "Saya"}
+                    Halaman {dashboardLabel}
                   </Button>
                 </Link>
               ) : (

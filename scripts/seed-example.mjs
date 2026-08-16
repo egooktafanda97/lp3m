@@ -13,11 +13,18 @@ const DATA_DIR = path.join(__dirname, "..", "data");
 const DB_PATH = path.join(DATA_DIR, "app.db");
 
 const PRODI = [
-  "Teknik Informatika",
-  "Sistem Informasi",
-  "Manajemen",
-  "Hukum Islam",
+  "Administrasi Negara",
+  "Agribisnis",
+  "Agroteknologi",
+  "Akuntansi",
+  "Ilmu Hukum",
   "Pendidikan Agama Islam",
+  "Pendidikan Kimia",
+  "Perbankan Syariah",
+  "Perencanaan Wilayah dan Kota",
+  "Peternakan",
+  "Teknik Informatika",
+  "Teknik Sipil",
 ];
 
 const PESERTA_NAMES = [

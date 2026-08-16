@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Button, Card, Input, Modal, Table, Tag, message } from "antd";
+import { HiOutlineEye } from "react-icons/hi";
 
 const statusColor = {
   menunggu_verifikasi: "orange",
@@ -56,6 +57,21 @@ export default function VerifikasiPendaftaranPage() {
     { title: "Prodi", dataIndex: "prodi", key: "prodi" },
     { title: "Ujian", dataIndex: "nama_ujian", key: "nama_ujian" },
     { title: "Tanggal", dataIndex: "tanggal", key: "tanggal" },
+    {
+      title: "Bukti Pembayaran",
+      key: "bukti_pembayaran",
+      render: (_, record) => record.dokumen_path ? (
+        <Button
+          size="small"
+          icon={<HiOutlineEye />}
+          href={`/api/bukti-pembayaran/${record.id}`}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Lihat Bukti
+        </Button>
+      ) : <Tag>Belum ada</Tag>,
+    },
     {
       title: "Status",
       dataIndex: "status",

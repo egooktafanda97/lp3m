@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Button, Card, Table, Tabs, Tag, message } from "antd";
+import { Button, Card, Segmented, Table, Tabs, Tag, message } from "antd";
 import {
   HiOutlineDownload,
   HiOutlinePrinter,
@@ -100,10 +100,11 @@ const TAB_CONFIG = {
     key: "sesi",
     label: "Rekap Sesi Ujian",
     icon: <HiOutlineCalendar />,
-    judul: "Rekap Sesi Ujian ICT & TOEFL",
+    judul: "Rekap Sesi Ujian",
     columns: [
       { title: "Jenis Ujian", dataIndex: "nama_ujian", key: "nama_ujian", width: 100 },
       { title: "Tanggal", dataIndex: "tanggal", key: "tanggal", width: 160 },
+      { title: "Durasi", dataIndex: "durasi_menit", key: "durasi_menit", width: 90, render: (v) => `${v} menit` },
       { title: "Lokasi", dataIndex: "lokasi", key: "lokasi" },
       { title: "Kuota", dataIndex: "kuota", key: "kuota", width: 80 },
       { title: "Pendaftar", dataIndex: "jumlah_pendaftar", key: "jumlah_pendaftar", width: 100 },
@@ -114,6 +115,7 @@ const TAB_CONFIG = {
     printColumns: [
       { title: "Jenis Ujian", dataIndex: "nama_ujian" },
       { title: "Tanggal", dataIndex: "tanggal" },
+      { title: "Durasi", dataIndex: "durasi_menit", render: (v) => `${v} menit` },
       { title: "Lokasi", dataIndex: "lokasi" },
       { title: "Kuota", dataIndex: "kuota" },
       { title: "Pendaftar", dataIndex: "jumlah_pendaftar" },
@@ -126,6 +128,7 @@ const TAB_CONFIG = {
 
 export default function LaporanPage() {
   const [activeTab, setActiveTab] = useState("peserta");
+  const [ujian, setUjian] = useState("ICT");
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
@@ -136,11 +139,11 @@ export default function LaporanPage() {
     total: 0,
   });
 
-  const loadData = useCallback(async (jenis, page = 1, pageSize = 10) => {
+  const loadData = useCallback(async (jenis, jenisUjian, page = 1, pageSize = 10) => {
     setLoading(true);
     try {
       const res = await fetch(
-        `/api/admin/laporan?jenis=${jenis}&format=json&page=${page}&pageSize=${pageSize}`
+        `/api/admin/laporan?jenis=${jenis}&ujian=${jenisUjian}&format=json&page=${page}&pageSize=${pageSize}`
       );
       const result = await res.json();
       if (!res.ok) {
@@ -161,22 +164,24 @@ export default function LaporanPage() {
   }, []);
 
   useEffect(() => {
-    loadData(activeTab, 1, pagination.pageSize);
+    loadData(activeTab, ujian, 1, pagination.pageSize);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab, loadData]);
+  }, [activeTab, ujian, loadData]);
 
   function handleTabChange(key) {
     setActiveTab(key);
   }
 
   function handleTableChange(pager) {
-    loadData(activeTab, pager.current, pager.pageSize);
+    loadData(activeTab, ujian, pager.current, pager.pageSize);
   }
 
   async function handleExportExcel() {
     setExporting(true);
     try {
-      const res = await fetch(`/api/admin/laporan?jenis=${activeTab}&format=excel`);
+      const res = await fetch(
+        `/api/admin/laporan?jenis=${activeTab}&ujian=${ujian}&format=excel`
+      );
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         message.error(err.error || "Gagal export Excel");
@@ -188,10 +193,10 @@ export default function LaporanPage() {
       a.href = url;
       a.download =
         activeTab === "kelulusan"
-          ? "rekap_kelulusan.xlsx"
+          ? `rekap_kelulusan_${ujian.toLowerCase()}.xlsx`
           : activeTab === "sesi"
-            ? "rekap_sesi_ujian.xlsx"
-            : "rekap_peserta.xlsx";
+            ? `rekap_sesi_${ujian.toLowerCase()}.xlsx`
+            : `rekap_peserta_${ujian.toLowerCase()}.xlsx`;
       a.click();
       URL.revokeObjectURL(url);
       message.success("Excel berhasil diunduh");
@@ -206,7 +211,9 @@ export default function LaporanPage() {
     setPrinting(true);
     try {
       // Ambil semua data untuk cetak lengkap
-      const res = await fetch(`/api/admin/laporan?jenis=${activeTab}&format=all`);
+      const res = await fetch(
+        `/api/admin/laporan?jenis=${activeTab}&ujian=${ujian}&format=all`
+      );
       const result = await res.json();
       if (!res.ok) {
         message.error(result.error || "Gagal memuat data untuk PDF");
@@ -215,7 +222,7 @@ export default function LaporanPage() {
 
       const config = TAB_CONFIG[activeTab];
       printLaporan({
-        judul: config.judul,
+        judul: `${config.judul} ${ujian}`,
         rows: result.data || [],
         columns: config.printColumns,
         jenis: activeTab,
@@ -290,6 +297,16 @@ export default function LaporanPage() {
       </div>
 
       <Card bordered={false} className="shadow-sm">
+        <div className="mb-5">
+          <p className="mb-2 text-sm font-medium text-slate-700">Jenis Ujian</p>
+          <Segmented
+            block
+            size="large"
+            value={ujian}
+            options={["ICT", "TOEFL"]}
+            onChange={setUjian}
+          />
+        </div>
         <Tabs activeKey={activeTab} onChange={handleTabChange} items={tabItems} />
       </Card>
 

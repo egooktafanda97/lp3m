@@ -1,8 +1,29 @@
-// [FAKTA] Role hanya admin dan peserta
 export const ROLES = {
   ADMIN: "admin",
+  KEPALA_LP3M: "kepala_lp3m",
   PESERTA: "peserta",
 };
+
+export const ROLE_HOME = {
+  [ROLES.ADMIN]: "/admin",
+  [ROLES.KEPALA_LP3M]: "/kepala",
+  [ROLES.PESERTA]: "/user",
+};
+
+export const PROGRAM_STUDI = [
+  "Administrasi Negara",
+  "Agribisnis",
+  "Agroteknologi",
+  "Akuntansi",
+  "Ilmu Hukum",
+  "Pendidikan Agama Islam",
+  "Pendidikan Kimia",
+  "Perbankan Syariah",
+  "Perencanaan Wilayah dan Kota",
+  "Peternakan",
+  "Teknik Informatika",
+  "Teknik Sipil",
+];
 
 // [FAKTA] Jenis ujian hanya ICT dan TOEFL
 export const JENIS_UJIAN = ["ICT", "TOEFL"];

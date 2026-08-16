@@ -2,6 +2,7 @@ import { requireAuth } from "@/lib/auth";
 import { errorResponse, jsonResponse } from "@/lib/api";
 import { getDb, logAktivitas } from "@/lib/db";
 import { ROLES } from "@/lib/constants";
+import { cariSesiBentrok, pesanSesiBentrok, validasiDataSesi } from "@/lib/sesiUjian";
 
 export async function GET() {
   const { error, status, user } = await requireAuth([ROLES.ADMIN]);
@@ -24,17 +25,35 @@ export async function POST(request) {
   const { error, status, user } = await requireAuth([ROLES.ADMIN]);
   if (error) return errorResponse(error, status);
 
-  const { jenis_ujian_id, tanggal, kuota, lokasi } = await request.json();
+  const { jenis_ujian_id, tanggal, durasi_menit, kuota, lokasi } = await request.json();
 
-  if (!jenis_ujian_id || !tanggal || !kuota) {
-    return errorResponse("Jenis ujian, tanggal, dan kuota wajib diisi");
+  const validation = validasiDataSesi({ jenis_ujian_id, tanggal, durasi_menit, kuota });
+  if (validation.error) return errorResponse(validation.error);
+
+  const sesiBentrok = cariSesiBentrok(tanggal, validation.data.durasi_menit);
+  if (sesiBentrok) return errorResponse(pesanSesiBentrok(sesiBentrok));
+
+  let result;
+  try {
+    result = getDb()
+      .prepare(
+        `INSERT INTO sesi_ujian
+          (jenis_ujian_id, tanggal, durasi_menit, kuota, lokasi)
+         VALUES (?, ?, ?, ?, ?)`
+      )
+      .run(
+        validation.data.jenis_ujian_id,
+        validation.data.tanggal,
+        validation.data.durasi_menit,
+        validation.data.kuota,
+        lokasi || null
+      );
+  } catch (insertError) {
+    if (insertError.message.includes("Jadwal sesi bentrok")) {
+      return errorResponse("Jadwal sesi bentrok dengan sesi lain");
+    }
+    throw insertError;
   }
-
-  const result = getDb()
-    .prepare(
-      "INSERT INTO sesi_ujian (jenis_ujian_id, tanggal, kuota, lokasi) VALUES (?, ?, ?, ?)"
-    )
-    .run(jenis_ujian_id, tanggal, kuota, lokasi || null);
 
   logAktivitas(user.id, "buat_sesi_ujian", `sesi_id=${result.lastInsertRowid}`);
   return jsonResponse({ id: result.lastInsertRowid }, 201);

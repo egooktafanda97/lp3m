@@ -4,7 +4,7 @@ import { getDb } from "@/lib/db";
 import { ROLES } from "@/lib/constants";
 
 export async function GET() {
-  const { error, status } = await requireAuth([ROLES.ADMIN]);
+  const { error, status } = await requireAuth([ROLES.ADMIN, ROLES.KEPALA_LP3M]);
   if (error) return errorResponse(error, status);
 
   const db = getDb();

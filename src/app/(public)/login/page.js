@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Form, Input, Button, Card, message } from "antd";
+import { ROLE_HOME } from "@/lib/constants";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -14,7 +15,7 @@ export default function LoginPage() {
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
         if (data?.user) {
-          router.replace(data.user.role === "admin" ? "/admin" : "/user");
+          router.replace(ROLE_HOME[data.user.role] || "/login");
         }
       });
   }, [router]);
@@ -33,7 +34,7 @@ export default function LoginPage() {
         return;
       }
       message.success("Login berhasil");
-      router.push(data.user.role === "admin" ? "/admin" : "/user");
+      router.push(ROLE_HOME[data.user.role] || "/login");
       router.refresh();
     } catch {
       message.error("Terjadi kesalahan");

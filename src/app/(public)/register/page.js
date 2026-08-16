@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Form, Input, Button, Card, message } from "antd";
+import { Form, Input, Button, Card, Select, message } from "antd";
+import { PROGRAM_STUDI } from "@/lib/constants";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -55,8 +56,17 @@ export default function RegisterPage() {
           <Form.Item label="Nomor Identitas (NIM/KTM)" name="nomor_identitas">
             <Input />
           </Form.Item>
-          <Form.Item label="Program Studi" name="prodi">
-            <Input />
+          <Form.Item
+            label="Program Studi"
+            name="prodi"
+            rules={[{ required: true, message: "Program studi wajib dipilih" }]}
+          >
+            <Select
+              showSearch
+              placeholder="Pilih program studi"
+              optionFilterProp="label"
+              options={PROGRAM_STUDI.map((prodi) => ({ label: prodi, value: prodi }))}
+            />
           </Form.Item>
           <Form.Item label="No. HP" name="no_hp">
             <Input />
