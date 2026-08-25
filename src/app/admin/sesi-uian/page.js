@@ -1,7 +1,19 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Button, Card, Form, Input, InputNumber, Modal, Select, Table, message, Popconfirm } from "antd";
+import {
+  Button,
+  Card,
+  Form,
+  Input,
+  InputNumber,
+  Modal,
+  Select,
+  Table,
+  Tag,
+  message,
+  Popconfirm,
+} from "antd";
 import { HiOutlinePlus } from "react-icons/hi";
 
 export default function SesiUjianPage() {
@@ -39,6 +51,7 @@ export default function SesiUjianPage() {
   function openEdit(record) {
     setEditing(record);
     form.setFieldsValue({
+      kode_sesi: record.kode_sesi || "",
       jenis_ujian_id: record.jenis_ujian_id,
       tanggal: record.tanggal?.replace(" ", "T").slice(0, 16),
       durasi_menit: record.durasi_menit || 120,
@@ -51,6 +64,7 @@ export default function SesiUjianPage() {
   async function onSubmit(values) {
     const payload = {
       ...values,
+      kode_sesi: values.kode_sesi ? values.kode_sesi.trim().toUpperCase() : undefined,
       tanggal: values.tanggal.replace("T", " ") + ":00",
     };
 
@@ -86,20 +100,33 @@ export default function SesiUjianPage() {
   }
 
   const columns = [
-    { title: "Jenis Ujian", dataIndex: "nama_ujian", key: "nama_ujian" },
+    {
+      title: "Kode Sesi",
+      dataIndex: "kode_sesi",
+      key: "kode_sesi",
+      width: 110,
+      render: (v) => (
+        <Tag color="blue" className="font-mono font-bold">
+          {v || "-"}
+        </Tag>
+      ),
+    },
+    { title: "Jenis Ujian", dataIndex: "nama_ujian", key: "nama_ujian", width: 100 },
     { title: "Tanggal", dataIndex: "tanggal", key: "tanggal" },
     {
       title: "Durasi",
       dataIndex: "durasi_menit",
       key: "durasi_menit",
+      width: 100,
       render: (value) => `${value} menit`,
     },
     { title: "Lokasi", dataIndex: "lokasi", key: "lokasi" },
-    { title: "Kuota", dataIndex: "kuota", key: "kuota" },
-    { title: "Pendaftar", dataIndex: "jumlah_pendaftar", key: "jumlah_pendaftar" },
+    { title: "Kuota", dataIndex: "kuota", key: "kuota", width: 80 },
+    { title: "Pendaftar", dataIndex: "jumlah_pendaftar", key: "jumlah_pendaftar", width: 95 },
     {
       title: "Aksi",
       key: "aksi",
+      width: 150,
       render: (_, record) => (
         <div className="flex gap-2">
           <Button size="small" onClick={() => openEdit(record)}>Edit</Button>
@@ -131,6 +158,24 @@ export default function SesiUjianPage() {
         footer={null}
       >
         <Form form={form} layout="vertical" onFinish={onSubmit}>
+          <Form.Item
+            label="Kode Sesi (5 Digit / Karakter)"
+            name="kode_sesi"
+            rules={[
+              { required: true, message: "Kode sesi 5 karakter wajib diisi" },
+              { len: 5, message: "Kode sesi harus tepat 5 karakter / digit" },
+            ]}
+            extra="Contoh: ICT01, TFL01, 10001 (5 karakter unik)"
+          >
+            <Input
+              maxLength={5}
+              placeholder="Contoh: ICT01"
+              className="font-mono uppercase"
+              onChange={(e) => {
+                form.setFieldsValue({ kode_sesi: e.target.value.toUpperCase() });
+              }}
+            />
+          </Form.Item>
           <Form.Item label="Jenis Ujian" name="jenis_ujian_id" rules={[{ required: true }]}>
             <Select
               options={jenisUjian.map((j) => ({ value: j.id, label: j.nama_ujian }))}

@@ -13,6 +13,7 @@ import {
   HiOutlineAcademicCap,
   HiOutlineX,
   HiOutlineClipboardCheck,
+  HiOutlineCog,
 } from "react-icons/hi";
 
 const adminNav = [
@@ -24,6 +25,7 @@ const adminNav = [
   { href: "/admin/peserta", label: "Kelola Peserta", icon: HiOutlineUsers },
   { href: "/admin/galeri", label: "Galeri Dokumentasi", icon: HiOutlineDocumentText },
   { href: "/admin/laporan", label: "Laporan", icon: HiOutlineChartBar },
+  { href: "/admin/pengaturan", label: "Pengaturan", icon: HiOutlineCog },
 ];
 
 const pesertaNav = [

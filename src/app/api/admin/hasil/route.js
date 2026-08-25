@@ -3,26 +3,31 @@ import { errorResponse, jsonResponse } from "@/lib/api";
 import { getDb, logAktivitas } from "@/lib/db";
 import { ROLES, STATUS_KELULUSAN, STATUS_PENDAFTARAN } from "@/lib/constants";
 
-function getPublishedResults() {
-  return getDb()
-    .prepare(
-      `SELECT h.*, p.peserta_id, p.sesi_ujian_id, p.status as status_pendaftaran,
-        u.nama as nama_peserta, j.nama_ujian, s.tanggal
-       FROM hasil_ujian h
-       JOIN pendaftaran p ON p.id = h.pendaftaran_id
-       JOIN users u ON u.id = p.peserta_id
-       JOIN sesi_ujian s ON s.id = p.sesi_ujian_id
-       JOIN jenis_ujian j ON j.id = s.jenis_ujian_id
-       ORDER BY h.tanggal_publish DESC`
-    )
-    .all();
+function getPublishedResults(ujian = null) {
+  let query = `
+    SELECT h.*, p.peserta_id, p.sesi_ujian_id, p.status as status_pendaftaran,
+      u.nama as nama_peserta, j.nama_ujian, s.tanggal, s.kode_sesi
+    FROM hasil_ujian h
+    JOIN pendaftaran p ON p.id = h.pendaftaran_id
+    JOIN users u ON u.id = p.peserta_id
+    JOIN sesi_ujian s ON s.id = p.sesi_ujian_id
+    JOIN jenis_ujian j ON j.id = s.jenis_ujian_id
+  `;
+  const params = [];
+  if (ujian) {
+    query += " WHERE UPPER(j.nama_ujian) = ?";
+    params.push(ujian.toUpperCase());
+  }
+  query += " ORDER BY h.tanggal_publish DESC";
+
+  return getDb().prepare(query).all(...params);
 }
 
-function getInputList(sesiUjianId = null) {
+function getInputList(sesiUjianId = null, ujian = null) {
   let query = `
     SELECT p.id as pendaftaran_id, u.nama as nama_peserta, u.email,
       pp.nomor_identitas, pp.prodi,
-      j.nama_ujian, s.tanggal, s.id as sesi_ujian_id, s.lokasi,
+      j.nama_ujian, s.tanggal, s.id as sesi_ujian_id, s.kode_sesi, s.lokasi,
       h.id as hasil_id, h.nilai, h.status_kelulusan, h.tanggal_publish
     FROM pendaftaran p
     JOIN users u ON u.id = p.peserta_id
@@ -37,6 +42,11 @@ function getInputList(sesiUjianId = null) {
   if (sesiUjianId) {
     query += " AND p.sesi_ujian_id = ?";
     params.push(sesiUjianId);
+  }
+
+  if (ujian) {
+    query += " AND UPPER(j.nama_ujian) = ?";
+    params.push(ujian.toUpperCase());
   }
 
   query += " ORDER BY s.tanggal DESC, u.nama ASC";
@@ -79,13 +89,17 @@ export async function GET(request) {
   const { searchParams } = new URL(request.url);
   const view = searchParams.get("view");
   const sesiUjianId = searchParams.get("sesi_ujian_id");
+  const ujian = searchParams.get("ujian");
 
   if (view === "input") {
-    const rows = getInputList(sesiUjianId ? Number(sesiUjianId) : null);
+    const rows = getInputList(
+      sesiUjianId ? Number(sesiUjianId) : null,
+      ujian || null
+    );
     return jsonResponse({ data: rows });
   }
 
-  return jsonResponse({ data: getPublishedResults() });
+  return jsonResponse({ data: getPublishedResults(ujian || null) });
 }
 
 export async function POST(request) {

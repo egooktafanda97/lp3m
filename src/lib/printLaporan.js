@@ -6,7 +6,7 @@ const LOGO_URL = "https://uniks.ac.id/images/logo-header.png";
  * Membuka jendela print dengan kop surat + tabel + tanda tangan.
  * User bisa "Save as PDF" dari dialog print browser.
  */
-export function printLaporan({ judul, rows, columns, jenis }) {
+export function printLaporan({ judul, rows, columns, jenis, pimpinan }) {
   const tanggalCetak = new Date().toLocaleDateString("id-ID", {
     weekday: "long",
     year: "numeric",
@@ -111,22 +111,32 @@ export function printLaporan({ judul, rows, columns, jenis }) {
     }
     td.no { text-align: center; width: 32px; }
     .ttd {
-      margin-top: 40px;
+      margin-top: 36px;
       display: flex;
       justify-content: flex-end;
+      page-break-inside: avoid;
     }
     .ttd-box {
-      width: 240px;
+      width: 280px;
       text-align: center;
       font-size: 11pt;
     }
-    .ttd-box .jabatan { margin-bottom: 70px; }
+    .ttd-box .tempat-tgl {
+      margin: 0;
+    }
+    .ttd-box .jabatan {
+      margin: 4px 0 65px 0;
+      font-weight: 500;
+    }
     .ttd-box .nama {
       font-weight: bold;
       text-decoration: underline;
       margin: 0;
     }
-    .ttd-box .nip { margin: 2px 0 0; font-size: 10pt; }
+    .ttd-box .nip {
+      margin: 3px 0 0;
+      font-size: 10pt;
+    }
     .footer-note {
       margin-top: 24px;
       font-size: 8pt;
@@ -177,16 +187,16 @@ export function printLaporan({ judul, rows, columns, jenis }) {
 
   <div class="ttd">
     <div class="ttd-box">
-      <p>Teluk Kuantan, ${escapeHtml(
+      <p class="tempat-tgl">${escapeHtml(pimpinan?.kota_laporan || "Teluk Kuantan")}, ${escapeHtml(
         new Date().toLocaleDateString("id-ID", {
           day: "numeric",
           month: "long",
           year: "numeric",
         })
       )}</p>
-      <p class="jabatan">&nbsp;</p>
-      <p class="nama">________________________</p>
-      <p class="nip">NIP. ........................</p>
+      <p class="jabatan">${escapeHtml(pimpinan?.jabatan_pimpinan || "Kepala LP3M")}</p>
+      <p class="nama">${escapeHtml(pimpinan?.nama_pimpinan || "________________________")}</p>
+      <p class="nip">${pimpinan?.nip_pimpinan && pimpinan.nip_pimpinan !== "-" ? `NIP. ${escapeHtml(pimpinan.nip_pimpinan)}` : "NIP. ........................"}</p>
     </div>
   </div>
 
@@ -226,9 +236,10 @@ export function printLaporan({ judul, rows, columns, jenis }) {
 }
 
 function escapeHtml(str) {
-  return str
+  return String(str ?? "")
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
 }
+

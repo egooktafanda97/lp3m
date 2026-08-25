@@ -37,6 +37,7 @@ function runMigrations(database) {
 
     CREATE TABLE IF NOT EXISTS sesi_ujian (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
+      kode_sesi TEXT,
       jenis_ujian_id INTEGER NOT NULL REFERENCES jenis_ujian(id),
       tanggal TEXT NOT NULL,
       durasi_menit INTEGER NOT NULL DEFAULT 120,
@@ -92,6 +93,12 @@ function runMigrations(database) {
       kategori TEXT,
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
+
+    CREATE TABLE IF NOT EXISTS pengaturan (
+      key TEXT PRIMARY KEY,
+      value TEXT NOT NULL,
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
   `);
   migrateColumns(database);
 }
@@ -138,6 +145,22 @@ function migrateColumns(database) {
     database.exec(
       "ALTER TABLE sesi_ujian ADD COLUMN durasi_menit INTEGER NOT NULL DEFAULT 120"
     );
+  }
+  if (!sesiCols.find((c) => c.name === "kode_sesi")) {
+    database.exec("ALTER TABLE sesi_ujian ADD COLUMN kode_sesi TEXT");
+    const existing = database
+      .prepare(
+        "SELECT id, jenis_ujian_id FROM sesi_ujian WHERE kode_sesi IS NULL OR kode_sesi = ''"
+      )
+      .all();
+    const updateKode = database.prepare(
+      "UPDATE sesi_ujian SET kode_sesi = ? WHERE id = ?"
+    );
+    for (const row of existing) {
+      const pad = String(row.id).padStart(3, "0");
+      const prefix = row.jenis_ujian_id === 2 ? "TF" : "IC";
+      updateKode.run(`${prefix}${pad}`, row.id);
+    }
   }
 
   database.exec(`
@@ -327,6 +350,19 @@ function seedData(database) {
       insertPengumuman.run(s.judul, s.isi, s.kategori, admin.id);
     }
   }
+
+  const defaultSettings = [
+    { key: "nama_pimpinan", value: "Dr. H. Nopriadi, S.Kom., M.Kom." },
+    { key: "jabatan_pimpinan", value: "Kepala LP3M" },
+    { key: "nip_pimpinan", value: "19850101 201001 1 002" },
+    { key: "kota_laporan", value: "Teluk Kuantan" },
+  ];
+  const insertSetting = database.prepare(
+    "INSERT OR IGNORE INTO pengaturan (key, value) VALUES (?, ?)"
+  );
+  for (const s of defaultSettings) {
+    insertSetting.run(s.key, s.value);
+  }
 }
 
 export function getDb() {
@@ -341,6 +377,39 @@ export function getDb() {
     seedData(db);
   }
   return db;
+}
+
+export function getPengaturan() {
+  const database = getDb();
+  const rows = database.prepare("SELECT key, value FROM pengaturan").all();
+  const settings = {
+    nama_pimpinan: "Dr. H. Nopriadi, S.Kom., M.Kom.",
+    jabatan_pimpinan: "Kepala LP3M",
+    nip_pimpinan: "19850101 201001 1 002",
+    kota_laporan: "Teluk Kuantan",
+  };
+  for (const row of rows) {
+    settings[row.key] = row.value;
+  }
+  return settings;
+}
+
+export function updatePengaturan(entries) {
+  const database = getDb();
+  const stmt = database.prepare(
+    "INSERT INTO pengaturan (key, value, updated_at) VALUES (?, ?, datetime('now')) ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = datetime('now')"
+  );
+
+  const updateMany = database.transaction((data) => {
+    for (const [key, value] of Object.entries(data)) {
+      if (typeof value === "string") {
+        stmt.run(key, value.trim());
+      }
+    }
+  });
+
+  updateMany(entries);
+  return getPengaturan();
 }
 
 export function logAktivitas(userId, aksi, detail = null) {

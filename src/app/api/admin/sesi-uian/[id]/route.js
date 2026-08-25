@@ -27,25 +27,36 @@ export async function PUT(request, { params }) {
   if (error) return errorResponse(error, status);
 
   const { id } = await params;
-  const { jenis_ujian_id, tanggal, durasi_menit, kuota, lokasi } = await request.json();
+  const { kode_sesi, jenis_ujian_id, tanggal, durasi_menit, kuota, lokasi } =
+    await request.json();
 
-  const validation = validasiDataSesi({ jenis_ujian_id, tanggal, durasi_menit, kuota });
+  const validation = validasiDataSesi(
+    { kode_sesi, jenis_ujian_id, tanggal, durasi_menit, kuota },
+    Number(id)
+  );
   if (validation.error) return errorResponse(validation.error);
 
-  const current = getDb().prepare("SELECT id FROM sesi_ujian WHERE id = ?").get(id);
+  const current = getDb()
+    .prepare("SELECT id FROM sesi_ujian WHERE id = ?")
+    .get(id);
   if (!current) return errorResponse("Sesi ujian tidak ditemukan", 404);
 
-  const sesiBentrok = cariSesiBentrok(tanggal, validation.data.durasi_menit, Number(id));
+  const sesiBentrok = cariSesiBentrok(
+    tanggal,
+    validation.data.durasi_menit,
+    Number(id)
+  );
   if (sesiBentrok) return errorResponse(pesanSesiBentrok(sesiBentrok));
 
   try {
     getDb()
       .prepare(
         `UPDATE sesi_ujian
-         SET jenis_ujian_id = ?, tanggal = ?, durasi_menit = ?, kuota = ?, lokasi = ?
+         SET kode_sesi = ?, jenis_ujian_id = ?, tanggal = ?, durasi_menit = ?, kuota = ?, lokasi = ?
          WHERE id = ?`
       )
       .run(
+        validation.data.kode_sesi,
         validation.data.jenis_ujian_id,
         validation.data.tanggal,
         validation.data.durasi_menit,

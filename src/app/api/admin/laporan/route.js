@@ -1,6 +1,6 @@
 import { requireAuth } from "@/lib/auth";
 import { errorResponse, jsonResponse } from "@/lib/api";
-import { getDb } from "@/lib/db";
+import { getDb, getPengaturan } from "@/lib/db";
 import { ROLES } from "@/lib/constants";
 import * as XLSX from "xlsx";
 
@@ -124,8 +124,11 @@ export async function GET(request) {
       ? data
       : data.slice((page - 1) * pageSize, (page - 1) * pageSize + pageSize);
 
+  const pimpinan = getPengaturan();
+
   return jsonResponse({
     data: rows,
+    pimpinan,
     pagination: {
       page: format === "all" ? 1 : page,
       pageSize: format === "all" ? total : pageSize,

@@ -25,9 +25,16 @@ export async function POST(request) {
   const { error, status, user } = await requireAuth([ROLES.ADMIN]);
   if (error) return errorResponse(error, status);
 
-  const { jenis_ujian_id, tanggal, durasi_menit, kuota, lokasi } = await request.json();
+  const { kode_sesi, jenis_ujian_id, tanggal, durasi_menit, kuota, lokasi } =
+    await request.json();
 
-  const validation = validasiDataSesi({ jenis_ujian_id, tanggal, durasi_menit, kuota });
+  const validation = validasiDataSesi({
+    kode_sesi,
+    jenis_ujian_id,
+    tanggal,
+    durasi_menit,
+    kuota,
+  });
   if (validation.error) return errorResponse(validation.error);
 
   const sesiBentrok = cariSesiBentrok(tanggal, validation.data.durasi_menit);
@@ -38,10 +45,11 @@ export async function POST(request) {
     result = getDb()
       .prepare(
         `INSERT INTO sesi_ujian
-          (jenis_ujian_id, tanggal, durasi_menit, kuota, lokasi)
-         VALUES (?, ?, ?, ?, ?)`
+          (kode_sesi, jenis_ujian_id, tanggal, durasi_menit, kuota, lokasi)
+         VALUES (?, ?, ?, ?, ?, ?)`
       )
       .run(
+        validation.data.kode_sesi,
         validation.data.jenis_ujian_id,
         validation.data.tanggal,
         validation.data.durasi_menit,

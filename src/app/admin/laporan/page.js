@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import { Button, Card, Segmented, Table, Tabs, Tag, message } from "antd";
 import {
   HiOutlineDownload,
@@ -8,6 +9,7 @@ import {
   HiOutlineDocumentText,
   HiOutlineAcademicCap,
   HiOutlineCalendar,
+  HiOutlineUserCircle,
 } from "react-icons/hi";
 import { printLaporan } from "@/lib/printLaporan";
 
@@ -130,6 +132,7 @@ export default function LaporanPage() {
   const [activeTab, setActiveTab] = useState("peserta");
   const [ujian, setUjian] = useState("ICT");
   const [data, setData] = useState([]);
+  const [pimpinan, setPimpinan] = useState(null);
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
   const [printing, setPrinting] = useState(false);
@@ -151,6 +154,9 @@ export default function LaporanPage() {
         return;
       }
       setData(result.data || []);
+      if (result.pimpinan) {
+        setPimpinan(result.pimpinan);
+      }
       setPagination({
         page: result.pagination.page,
         pageSize: result.pagination.pageSize,
@@ -226,6 +232,7 @@ export default function LaporanPage() {
         rows: result.data || [],
         columns: config.printColumns,
         jenis: activeTab,
+        pimpinan: result.pimpinan || pimpinan,
       });
     } catch {
       message.error("Gagal mencetak PDF");
@@ -297,6 +304,29 @@ export default function LaporanPage() {
       </div>
 
       <Card bordered={false} className="shadow-sm">
+        {pimpinan && (
+          <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-emerald-100 bg-emerald-50/70 p-3.5 text-xs sm:text-sm text-emerald-950">
+            <div className="flex items-center gap-2.5">
+              <HiOutlineUserCircle className="h-5 w-5 shrink-0 text-emerald-600" />
+              <div>
+                <span className="font-medium text-emerald-800">Penandatangan Laporan: </span>
+                <span className="font-bold text-slate-900">{pimpinan.nama_pimpinan}</span>
+                <span className="text-slate-600"> ({pimpinan.jabatan_pimpinan})</span>
+                {pimpinan.nip_pimpinan && pimpinan.nip_pimpinan !== "-" && (
+                  <span className="text-slate-600"> · NIP: {pimpinan.nip_pimpinan}</span>
+                )}
+                <span className="text-slate-500"> · {pimpinan.kota_laporan}</span>
+              </div>
+            </div>
+            <Link
+              href="/admin/pengaturan"
+              className="inline-flex items-center font-semibold text-emerald-700 hover:text-emerald-800 hover:underline"
+            >
+              Ubah Nama Pimpinan →
+            </Link>
+          </div>
+        )}
+
         <div className="mb-5">
           <p className="mb-2 text-sm font-medium text-slate-700">Jenis Ujian</p>
           <Segmented
